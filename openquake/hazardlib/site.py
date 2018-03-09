@@ -144,7 +144,7 @@ class SiteCollection(object):
     ])
 
     @classmethod
-    def from_points(cls, lons, lats, depths, sitemodel):
+    def from_points(cls, lons, lats, depths=None, sitemodel=None):
         """
         Build the site collection from
 
@@ -153,7 +153,7 @@ class SiteCollection(object):
         :param lats:
             a sequence of latitudes
         :param depths:
-            a sequence of depths
+            a sequence of depths (or None)
         :param sitemodel:
             an object containing the attributes
             reference_vs30_value,
@@ -173,12 +173,13 @@ class SiteCollection(object):
         arr['lons'] = numpy.array(lons)
         arr['lats'] = numpy.array(lats)
         arr['depths'] = numpy.array(depths)
-        arr['vs30'] = sitemodel.reference_vs30_value
-        arr['vs30measured'] = sitemodel.reference_vs30_type == 'measured'
-        arr['z1pt0'] = sitemodel.reference_depth_to_1pt0km_per_sec
-        arr['z2pt5'] = sitemodel.reference_depth_to_2pt5km_per_sec
-        arr['backarc'] = sitemodel.reference_backarc
-        arr.flags.writeable = False
+        if sitemodel is not None:
+            arr['vs30'] = sitemodel.reference_vs30_value
+            arr['vs30measured'] = sitemodel.reference_vs30_type == 'measured'
+            arr['z1pt0'] = sitemodel.reference_depth_to_1pt0km_per_sec
+            arr['z2pt5'] = sitemodel.reference_depth_to_2pt5km_per_sec
+            arr['backarc'] = sitemodel.reference_backarc
+        #arr.flags.writeable = False
         return self
 
     @classmethod

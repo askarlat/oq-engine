@@ -311,35 +311,36 @@ def get_site_collection(oqparam, mesh=None):
     elif mesh is None:
         return
     if oqparam.inputs.get('site_model'):
-        sitecol = []
         if getattr(mesh, 'from_site_model', False):
+            sites = []
             for param in sorted(get_site_model(oqparam)):
                 pt = geo.Point(param.lon, param.lat, param.depth)
-                sitecol.append(site.Site(
+                sites.append(site.Site(
                     pt, param.vs30, param.measured,
                     param.z1pt0, param.z2pt5, param.backarc))
-            return site.SiteCollection(sitecol)
-        # read the parameters directly from their file
-        site_model_params = geo.utils.GeographicObjects(
-            get_site_model(oqparam))
-        for pt in mesh:
-            # attach the closest site model params to each site
-            param, dist = site_model_params.get_closest(
-                pt.longitude, pt.latitude)
-            if dist >= oqparam.max_site_model_distance:
-                logging.warn('The site parameter associated to %s came from a '
-                             'distance of %d km!' % (pt, dist))
-            sitecol.append(
-                site.Site(pt, param.vs30, param.measured,
-                          param.z1pt0, param.z2pt5, param.backarc))
-        if len(sitecol) == 1 and oqparam.hazard_maps:
-            logging.warn('There is a single site, hazard_maps=true '
-                         'has little sense')
-        return site.SiteCollection(sitecol)
-
-    # else use the default site params
-    return site.SiteCollection.from_points(
-        mesh.lons, mesh.lats, mesh.depths, oqparam)
+            sitecol = site.SiteCollection(sites)
+        else:
+            sitecol = site.SiteCollection.from_points(
+                mesh.lons, mesh.lats, mesh.depths)
+            # read the parameters directly from their file
+            site_model_params = geo.utils.GeographicObjects(
+                get_site_model(oqparam)).assoc(
+                    sitecol, oqparam.max_site_model_distance,
+                    mode='warn')
+            sitecol.indices = numpy.array(sorted(site_model_params))
+            for sid, param in site_model_params.items():
+                sitecol.array[sid]['vs30'] = param.vs30
+                sitecol.array[sid]['vs30measured'] = param.measured
+                sitecol.array[sid]['z1pt0'] = param.z1pt0
+                sitecol.array[sid]['z2pt5'] = param.z2pt5
+                sitecol.array[sid]['backarc'] = param.backarc
+    else:  # use the default site params
+        sitecol = site.SiteCollection.from_points(
+            mesh.lons, mesh.lats, mesh.depths, oqparam)
+    if len(sitecol) == 1 and oqparam.hazard_maps:
+        logging.warn('There is a single site, hazard_maps=true '
+                     'has little sense')
+    return sitecol
 
 
 def get_gsim_lt(oqparam, trts=['*']):
